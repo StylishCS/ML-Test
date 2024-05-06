@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Camera Feed</title>
+  </head>
+  <body>
+    <h1>Camera Feed</h1>
+    <video id="videoElement" width="640" height="480" autoplay></video>
+    <button onclick="startCamera()">Start Camera</button>
+    <button onclick="stopCamera()">Stop Camera</button>
+    <button onclick="sendFrames()">Send Frames</button>
+    <button onclick="test()">Test Send Frames</button>
+
+    <script>
+      let videoElement = document.getElementById("videoElement");
+      let stream;
+
+      // Function to start the camera and display the video feed
+      async function startCamera() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+          });
+          videoElement.srcObject = stream;
+        } catch (error) {
+          console.error("Error accessing camera:", error);
+        }
+      }
+
+      // Function to stop the camera
+      function stopCamera() {
+        if (stream) {
+          let tracks = stream.getTracks();
+          tracks.forEach((track) => track.stop());
+          videoElement.srcObject = null;
+        }
+      }
+      async function test() {
+        try {
+          let response = await fetch("http://127.0.0.1:3000/video-frames", {
+            method: "POST",
+            body: { frames: "test frame 1" }, // Send data URL as plain text
+          });
+          //   let res = await response.json();
+          //   console.log(res);
+          console.log("Test Frames sent successfully");
+        } catch (error) {
+          console.error("Error sending frames to backend:", error);
+        }
+      }
+      // Function to send frames to the backend API
+      async function sendFrames() {
+        if (!stream) {
+          console.error("Camera not started");
+          return;
+        }
+
+        let canvas = document.createElement("canvas");
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        let ctx = canvas.getContext("2d");
+        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        let dataUrl = canvas.toDataURL("image/jpeg");
+
+        // Send frames to backend API
+        try {
+          let response = await fetch("http://127.0.0.1:3000/video-frames", {
+            method: "POST",
+            body: dataUrl, // Send data URL as plain text
+          });
+          //   let res = await response.json();
+          //   console.log(res);
+          console.log("Frames sent successfully");
+        } catch (error) {
+          console.error("Error sending frames to backend:", error);
+        }
+      }
+    </script>
+  </body>
+</html>
